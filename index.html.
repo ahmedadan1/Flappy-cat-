@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Cat 2025</title>
+    <style>
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; height: 100vh; width: 100vw; }
+        #game-container { position: relative; width: 100%; height: 100%; }
+        canvas { display: block; width: 100%; height: 100%; background: #0a0a2e; }
+
+        /* UI Styling */
+        #ui { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; align-items: center; justify-content: center; z-index: 10;
+        }
+        #menu { 
+            text-align: center; background: rgba(0, 0, 0, 0.9); padding: 40px; 
+            border-radius: 30px; border: 3px solid #00ffcc; color: white;
+        }
+        button { 
+            background: #00ffcc; color: black; border: none; padding: 20px 50px; 
+            font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer;
+            margin-top: 20px;
+        }
+        #score { 
+            position: absolute; top: 50px; width: 100%; text-align: center; 
+            font-size: 80px; color: white; opacity: 0.3; pointer-events: none; z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="score">0</div>
+        <div id="ui">
+            <div id="menu">
+                <h1 style="margin:0; color:#00ffcc;">FLAPPY CAT</h1>
+                <p style="color:#ff00ff;">2025 NEON EDITION</p>
+                <button onclick="startGame()">START GAME</button>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const uiEl = document.getElementById('ui');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let gameState = 'MENU';
+        let score = 0;
+        let pipes = [];
+        let cat = { x: 50, y: 0, w: 50, h: 40, v: 0, g: 0.5 };
+
+        function startGame() {
+            gameState = 'PLAYING';
+            uiEl.style.display = 'none';
+            score = 0;
+            scoreEl.innerText = "0";
+            pipes = [];
+            cat.y = canvas.height / 2;
+            cat.v = 0;
+        }
+
+        function flap() {
+            if (gameState === 'PLAYING') cat.v = -8;
+        }
+
+        // Input handling
+        window.addEventListener('mousedown', flap);
+        window.addEventListener('touchstart', (e) => {
+            if (gameState === 'PLAYING') {
+                flap();
+                e.preventDefault();
+            }
+        }, { passive: false });
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') flap(); });
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            cat.v += cat.g;
+            cat.y += cat.v;
+
+            // Collision with floor/ceiling
+            if (cat.y + cat.h > canvas.height || cat.y < 0) {
+                gameState = 'MENU';
+                uiEl.style.display = 'flex';
+            }
+
+            // Pipe spawning
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                let pipeGap = 200;
+                let topHeight = Math.random() * (canvas.height - 400) + 100;
+                pipes.push({ x: canvas.width, top: topHeight, gap: pipeGap, passed: false });
+            }
+
+            pipes.forEach((p, i) => {
+                p.x -= 4;
+
+                // Collision with pipes
+                if (cat.x < p.x + 80 && cat.x + cat.w > p.x &&
+                    (cat.y < p.top || cat.y + cat.h > p.top + p.gap)) {
+                    gameState = 'MENU';
+                    uiEl.style.display = 'flex';
+                }
+
+                // Scoring
+                if (!p.passed && p.x + 80 < cat.x) {
+                    p.passed = true;
+                    score++;
+                    scoreEl.innerText = score;
+                }
+
+                if (p.x < -100) pipes.splice(i, 1);
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0a0a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Pipes
+            ctx.fillStyle = '#00ffcc';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ffcc';
+            pipes.forEach(p => {
+                ctx.fillRect(p.x, 0, 80, p.top);
+                ctx.fillRect(p.x, p.top + p.gap, 80, canvas.height);
+            });
+
+            // Draw Cat
+            ctx.fillStyle = '#ff00ff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff00ff';
+            ctx.save();
+            ctx.translate(cat.x + cat.w/2, cat.y + cat.h/2);
+            ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, cat.v * 0.05)));
+            ctx.beginPath();
+            ctx.roundRect(-cat.w/2, -cat.h/2, cat.w, cat.h, 10);
+            ctx.fill();
+            
+            // Ear detail
+            ctx.beginPath();
+            ctx.moveTo(-15, -15); ctx.lineTo(-20, -30); ctx.lineTo(-5, -15);
+            ctx.moveTo(15, -15); ctx.lineTo(20, -30); ctx.lineTo(5, -15);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.shadowBlur = 0;
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
+
