@@ -6,108 +6,81 @@
     <title>Flappy Cat 2025</title>
     <style>
         * { box-sizing: border-box; touch-action: manipulation; }
-        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; width: 100vw; }
-        
-        #game-wrap { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
-        canvas { display: block; flex-grow: 1; background: #0a0a2e; width: 100%; height: 100%; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; height: 100vh; width: 100vw; }
+        #game-container { position: relative; width: 100%; height: 100%; }
+        canvas { display: block; width: 100%; height: 100%; background: #0a0a2e; }
 
-        /* UI Layer */
-        #overlay { 
+        /* UI Styling */
+        #ui { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: flex; align-items: center; justify-content: center; pointer-events: none; 
-            z-index: 20;
+            display: flex; align-items: center; justify-content: center; z-index: 10;
         }
         #menu { 
-            pointer-events: auto; text-align: center; background: rgba(0, 0, 0, 0.85); 
-            padding: 40px; border-radius: 30px; border: 3px solid #00ffcc; 
-            box-shadow: 0 0 40px rgba(0, 255, 204, 0.3); backdrop-filter: blur(10px);
+            text-align: center; background: rgba(0, 0, 0, 0.9); padding: 40px; 
+            border-radius: 30px; border: 3px solid #00ffcc; color: white;
         }
-        h1 { color: #00ffcc; font-size: clamp(32px, 8vw, 54px); margin: 0; text-shadow: 0 0 15px #00ffcc; text-transform: uppercase; }
-        
         button { 
-            background: #00ffcc; color: #000; border: none; padding: 20px 50px; 
-            font-size: 24px; font-weight: 900; cursor: pointer; border-radius: 50px; 
-            margin-top: 25px; transition: 0.2s; box-shadow: 0 5px 0 #008f72;
+            background: #00ffcc; color: black; border: none; padding: 20px 50px; 
+            font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer;
+            margin-top: 20px;
         }
-        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #008f72; }
-
-        #score-view { 
+        #score { 
             position: absolute; top: 50px; width: 100%; text-align: center; 
-            font-size: 100px; color: rgba(255, 255, 255, 0.2); font-weight: 900; 
-            pointer-events: none; z-index: 10;
+            font-size: 80px; color: white; opacity: 0.3; pointer-events: none; z-index: 5;
         }
     </style>
 </head>
 <body>
 
-    <div id="game-wrap">
-        <div id="score-view">0</div>
-        <div id="overlay">
+    <div id="game-container">
+        <div id="score">0</div>
+        <div id="ui">
             <div id="menu">
-                <h1>FLAPPY CAT</h1>
-                <p style="color: #00ffcc; letter-spacing: 2px;">ULTRA NEON 2025</p>
-                <button id="startBtn">START GAME</button>
+                <h1 style="margin:0; color:#00ffcc;">FLAPPY CAT</h1>
+                <p style="color:#ff00ff;">2025 NEON EDITION</p>
+                <button onclick="startGame()">START GAME</button>
             </div>
         </div>
-        <canvas id="game"></canvas>
+        <canvas id="gameCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('game');
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreView = document.getElementById('score-view');
-        const menu = document.getElementById('menu');
-        const startBtn = document.getElementById('startBtn');
+        const scoreEl = document.getElementById('score');
+        const uiEl = document.getElementById('ui');
 
-        // Resize function for Computer and Phone
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        let gameState = 'START';
+        let gameState = 'MENU';
         let score = 0;
         let pipes = [];
-        let cat = { x: 80, y: 0, w: 45, h: 35, v: 0, g: 0.45, jump: -8 };
+        let cat = { x: 50, y: 0, w: 50, h: 40, v: 0, g: 0.5 };
 
         function startGame() {
             gameState = 'PLAYING';
-            menu.style.display = 'none';
+            uiEl.style.display = 'none';
             score = 0;
-            scoreView.innerText = "0";
+            scoreEl.innerText = "0";
             pipes = [];
             cat.y = canvas.height / 2;
             cat.v = 0;
         }
 
         function flap() {
-            if (gameState === 'PLAYING') {
-                cat.v = cat.jump;
-            }
+            if (gameState === 'PLAYING') cat.v = -8;
         }
 
-        // Input Listeners (Mouse, Touch, and Keyboard)
-        startBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            startGame();
-        });
-
-        window.addEventListener('mousedown', (e) => {
-            if (e.target.tagName !== 'BUTTON') flap();
-        });
-
+        // Input handling
+        window.addEventListener('mousedown', flap);
         window.addEventListener('touchstart', (e) => {
-            if (e.target.tagName !== 'BUTTON') {
+            if (gameState === 'PLAYING') {
                 flap();
-                if (gameState === 'PLAYING') e.preventDefault();
+                e.preventDefault();
             }
         }, { passive: false });
-
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') flap();
-        });
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') flap(); });
 
         function update() {
             if (gameState !== 'PLAYING') return;
@@ -115,78 +88,77 @@
             cat.v += cat.g;
             cat.y += cat.v;
 
-            // Pipe Generation
+            // Collision with floor/ceiling
+            if (cat.y + cat.h > canvas.height || cat.y < 0) {
+                gameState = 'MENU';
+                uiEl.style.display = 'flex';
+            }
+
+            // Pipe spawning
             if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
-                let gap = 200;
-                let topH = Math.random() * (canvas.height - gap - 200) + 100;
-                pipes.push({ x: canvas.width, top: topH, gap: gap, passed: false });
+                let pipeGap = 200;
+                let topHeight = Math.random() * (canvas.height - 400) + 100;
+                pipes.push({ x: canvas.width, top: topHeight, gap: pipeGap, passed: false });
             }
 
             pipes.forEach((p, i) => {
                 p.x -= 4;
 
-                // Collision Detection
-                if (cat.x + 5 < p.x + 80 && cat.x + cat.w - 5 > p.x &&
-                    (cat.y + 5 < p.top || cat.y + cat.h - 5 > p.top + p.gap)) {
-                    gameState = 'START';
-                    menu.style.display = 'block';
+                // Collision with pipes
+                if (cat.x < p.x + 80 && cat.x + cat.w > p.x &&
+                    (cat.y < p.top || cat.y + cat.h > p.top + p.gap)) {
+                    gameState = 'MENU';
+                    uiEl.style.display = 'flex';
                 }
 
                 // Scoring
                 if (!p.passed && p.x + 80 < cat.x) {
                     p.passed = true;
                     score++;
-                    scoreView.innerText = score;
+                    scoreEl.innerText = score;
                 }
 
                 if (p.x < -100) pipes.splice(i, 1);
             });
-
-            // Boundary Check
-            if (cat.y + cat.h > canvas.height || cat.y < 0) {
-                gameState = 'START';
-                menu.style.display = 'block';
-            }
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Background
             ctx.fillStyle = '#0a0a2e';
-            ctx.fillRect(0,0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw Pipes
+            ctx.fillStyle = '#00ffcc';
             ctx.shadowBlur = 15;
-            ctx.shadowColor = "#00ffcc";
-            ctx.fillStyle = "#00ffcc";
+            ctx.shadowColor = '#00ffcc';
             pipes.forEach(p => {
-                ctx.fillRect(p.x, 0, 80, p.top); // Top Pipe
-                ctx.fillRect(p.x, p.top + p.gap, 80, canvas.height); // Bottom Pipe
+                ctx.fillRect(p.x, 0, 80, p.top);
+                ctx.fillRect(p.x, p.top + p.gap, 80, canvas.height);
             });
 
             // Draw Cat
+            ctx.fillStyle = '#ff00ff';
             ctx.shadowBlur = 20;
-            ctx.shadowColor = "#ff00ff";
-            ctx.fillStyle = "#ff00ff";
-            
+            ctx.shadowColor = '#ff00ff';
             ctx.save();
             ctx.translate(cat.x + cat.w/2, cat.y + cat.h/2);
             ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, cat.v * 0.05)));
-            
-            // Cat Body
             ctx.beginPath();
             ctx.roundRect(-cat.w/2, -cat.h/2, cat.w, cat.h, 10);
             ctx.fill();
             
-            // Ears
+            // Ear detail
             ctx.beginPath();
             ctx.moveTo(-15, -15); ctx.lineTo(-20, -30); ctx.lineTo(-5, -15);
             ctx.moveTo(15, -15); ctx.lineTo(20, -30); ctx.lineTo(5, -15);
             ctx.fill();
+            ctx.restore();
 
-            // Eyes
-            ctx.fillStyle = "white";
-            ctx.beginPath(); ctx.arc(-8, -5, 4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(
+            ctx.shadowBlur = 0;
+            update();
+            requestAnimationFrame(draw);
+        }
 
+        draw();
+    </script>
+</body>
+</html>
