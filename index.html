@@ -1,120 +1,113 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Jungle Cat 2025</title>
+    <title>Flappy Cat 2025</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        #game-container { position: relative; flex-grow: 1; overflow: hidden; cursor: pointer; }
-        canvas { display: block; width: 100%; height: 100%; }
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; width: 100vw; }
         
-        /* UI Design */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-        #menu { pointer-events: auto; text-align: center; background: rgba(0, 0, 0, 0.8); padding: 30px; border-radius: 30px; border: 2px solid #00ffcc; box-shadow: 0 0 30px #00ffcc55; backdrop-filter: blur(10px); }
-        h1 { color: #00ffcc; font-size: 48px; margin: 0; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; }
-        button { background: #00ffcc; color: #000; border: none; padding: 15px 45px; font-size: 24px; font-weight: bold; cursor: pointer; border-radius: 50px; margin-top: 20px; transition: 0.3s; box-shadow: 0 0 15px #00ffcc; }
-        button:hover { transform: scale(1.1); box-shadow: 0 0 25px #00ffcc; }
+        #game-wrap { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        canvas { display: block; flex-grow: 1; background: #0a0a2e; width: 100%; height: 100%; }
+
+        /* UI Layer */
+        #overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; align-items: center; justify-content: center; pointer-events: none; 
+            z-index: 20;
+        }
+        #menu { 
+            pointer-events: auto; text-align: center; background: rgba(0, 0, 0, 0.85); 
+            padding: 40px; border-radius: 30px; border: 3px solid #00ffcc; 
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.3); backdrop-filter: blur(10px);
+        }
+        h1 { color: #00ffcc; font-size: clamp(32px, 8vw, 54px); margin: 0; text-shadow: 0 0 15px #00ffcc; text-transform: uppercase; }
         
-        #score-display { position: absolute; top: 40px; font-size: 80px; color: #fff; font-weight: 900; opacity: 0.5; pointer-events: none; width: 100%; text-align: center; }
-        #banner { height: 60px; background: #111; color: #00ffcc; display: flex; align-items: center; justify-content: center; font-weight: bold; border-top: 1px solid #333; letter-spacing: 1px; font-size: 12px; }
+        button { 
+            background: #00ffcc; color: #000; border: none; padding: 20px 50px; 
+            font-size: 24px; font-weight: 900; cursor: pointer; border-radius: 50px; 
+            margin-top: 25px; transition: 0.2s; box-shadow: 0 5px 0 #008f72;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #008f72; }
+
+        #score-view { 
+            position: absolute; top: 50px; width: 100%; text-align: center; 
+            font-size: 100px; color: rgba(255, 255, 255, 0.2); font-weight: 900; 
+            pointer-events: none; z-index: 10;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="score-display">0</div>
-        <div id="ui-layer">
+    <div id="game-wrap">
+        <div id="score-view">0</div>
+        <div id="overlay">
             <div id="menu">
-                <h1>Jungle Cat</h1>
-                <p style="color: #ccc;">NEON EDITION 2025</p>
-                <button onclick="startGame()">ENTER JUNGLE</button>
+                <h1>FLAPPY CAT</h1>
+                <p style="color: #00ffcc; letter-spacing: 2px;">ULTRA NEON 2025</p>
+                <button id="startBtn">START GAME</button>
             </div>
         </div>
         <canvas id="game"></canvas>
     </div>
-    <div id="banner">AD: UPGRADE YOUR GEAR AT THE NEON SHOP</div>
 
     <script>
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score-display');
-        const menuEl = document.getElementById('menu');
+        const scoreView = document.getElementById('score-view');
+        const menu = document.getElementById('menu');
+        const startBtn = document.getElementById('startBtn');
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 60;
+        // Resize function for Computer and Phone
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
 
-        let gameState = 'MENU';
+        let gameState = 'START';
         let score = 0;
         let pipes = [];
-        let particles = [];
-        let gameSpeed = 4;
-        let cat = { x: 100, y: 300, w: 50, h: 40, v: 0, g: 0.5, rotation: 0 };
+        let cat = { x: 80, y: 0, w: 45, h: 35, v: 0, g: 0.45, jump: -8 };
 
         function startGame() {
             gameState = 'PLAYING';
-            menuEl.parentElement.style.display = 'none';
+            menu.style.display = 'none';
             score = 0;
+            scoreView.innerText = "0";
             pipes = [];
             cat.y = canvas.height / 2;
             cat.v = 0;
-            scoreEl.innerText = "0";
         }
 
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y;
-                this.size = Math.random() * 5 + 2;
-                this.speedX = Math.random() * 6 - 3;
-                this.speedY = Math.random() * 6 - 3;
-                this.color = color;
-                this.alpha = 1;
-            }
-            update() { this.x += this.speedX; this.y += this.speedY; this.alpha -= 0.02; }
-            draw() {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1;
+        function flap() {
+            if (gameState === 'PLAYING') {
+                cat.v = cat.jump;
             }
         }
 
-        function createExplosion(x, y, color) {
-            for(let i=0; i<15; i++) particles.push(new Particle(x, y, color));
-        }
+        // Input Listeners (Mouse, Touch, and Keyboard)
+        startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startGame();
+        });
 
-        function drawCat() {
-            ctx.save();
-            ctx.translate(cat.x + cat.w/2, cat.y + cat.h/2);
-            cat.rotation = Math.min(Math.PI/4, Math.max(-Math.PI/4, cat.v * 0.05));
-            ctx.rotate(cat.rotation);
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON') flap();
+        });
 
-            // Neon Glow
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = "#ff00ff";
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                flap();
+                if (gameState === 'PLAYING') e.preventDefault();
+            }
+        }, { passive: false });
 
-            // Body
-            ctx.fillStyle = "#ff00ff";
-            ctx.beginPath();
-            ctx.roundRect(-cat.w/2, -cat.h/2, cat.w, cat.h, 15);
-            ctx.fill();
-
-            // Ears
-            ctx.beginPath();
-            ctx.moveTo(-20, -20); ctx.lineTo(-25, -35); ctx.lineTo(-10, -20);
-            ctx.moveTo(20, -20); ctx.lineTo(25, -35); ctx.lineTo(10, -20);
-            ctx.fill();
-
-            // Eyes (Glowing)
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#00ffcc";
-            ctx.fillStyle = "#00ffcc";
-            ctx.beginPath(); ctx.arc(-10, -5, 5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(10, -5, 5, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-        }
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') flap();
+        });
 
         function update() {
             if (gameState !== 'PLAYING') return;
@@ -122,79 +115,87 @@
             cat.v += cat.g;
             cat.y += cat.v;
 
-            if (cat.y + cat.h > canvas.height || cat.y < 0) endGame();
+            // Pipe Generation
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                let gap = 200;
+                let topH = Math.random() * (canvas.height - gap - 200) + 100;
+                pipes.push({ x: canvas.width, top: topH, gap: gap, passed: false });
+            }
 
             pipes.forEach((p, i) => {
-                p.x -= gameSpeed;
-                
-                // Collision
-                if (cat.x + 10 < p.x + 80 && cat.x + cat.w - 10 > p.x &&
-                    (cat.y + 10 < p.top || cat.y + cat.h - 10 > p.top + 220)) {
-                    endGame();
+                p.x -= 4;
+
+                // Collision Detection
+                if (cat.x + 5 < p.x + 80 && cat.x + cat.w - 5 > p.x &&
+                    (cat.y + 5 < p.top || cat.y + cat.h - 5 > p.top + p.gap)) {
+                    gameState = 'START';
+                    menu.style.display = 'block';
                 }
 
+                // Scoring
                 if (!p.passed && p.x + 80 < cat.x) {
                     p.passed = true;
                     score++;
-                    scoreEl.innerText = score;
-                    gameSpeed += 0.1;
+                    scoreView.innerText = score;
                 }
 
                 if (p.x < -100) pipes.splice(i, 1);
             });
 
-            if (pipes.length === 0 || pipes[pipes.length-1].x < canvas.width - 350) {
-                pipes.push({ x: canvas.width, top: Math.random() * (canvas.height - 400) + 100, passed: false });
+            // Boundary Check
+            if (cat.y + cat.h > canvas.height || cat.y < 0) {
+                gameState = 'START';
+                menu.style.display = 'block';
             }
-
-            particles.forEach((p, i) => {
-                p.update();
-                if(p.alpha <= 0) particles.splice(i, 1);
-            });
-        }
-
-        function endGame() {
-            createExplosion(cat.x + cat.w/2, cat.y + cat.h/2, "#ff00ff");
-            gameState = 'MENU';
-            setTimeout(() => {
-                menuEl.parentElement.style.display = 'flex';
-            }, 500);
         }
 
         function draw() {
-            // Background Gradient
-            let grad = ctx.createLinearGradient(0,0,0, canvas.height);
-            grad.addColorStop(0, '#0a0a2e');
-            grad.addColorStop(1, '#000000');
-            ctx.fillStyle = grad;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background
+            ctx.fillStyle = '#0a0a2e';
             ctx.fillRect(0,0, canvas.width, canvas.height);
 
-            // Draw Pipes with Neon Glow
+            // Draw Pipes
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#00ffcc";
+            ctx.fillStyle = "#00ffcc";
             pipes.forEach(p => {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "#00ffcc";
-                ctx.fillStyle = "#00ffcc";
-                ctx.fillRect(p.x, 0, 80, p.top);
-                ctx.fillRect(p.x, p.top + 220, 80, canvas.height);
+                ctx.fillRect(p.x, 0, 80, p.top); // Top Pipe
+                ctx.fillRect(p.x, p.top + p.gap, 80, canvas.height); // Bottom Pipe
             });
 
-            particles.forEach(p => p.draw());
-            drawCat();
+            // Draw Cat
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#ff00ff";
+            ctx.fillStyle = "#ff00ff";
+            
+            ctx.save();
+            ctx.translate(cat.x + cat.w/2, cat.y + cat.h/2);
+            ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, cat.v * 0.05)));
+            
+            // Cat Body
+            ctx.beginPath();
+            ctx.roundRect(-cat.w/2, -cat.h/2, cat.w, cat.h, 10);
+            ctx.fill();
+            
+            // Ears
+            ctx.beginPath();
+            ctx.moveTo(-15, -15); ctx.lineTo(-20, -30); ctx.lineTo(-5, -15);
+            ctx.moveTo(15, -15); ctx.lineTo(20, -30); ctx.lineTo(5, -15);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = "white";
+            ctx.beginPath(); ctx.arc(-8, -5, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(8, -5, 4, 0, Math.PI*2); ctx.fill();
+
+            ctx.restore();
+            ctx.shadowBlur = 0;
+
             update();
             requestAnimationFrame(draw);
         }
-
-        const flap = (e) => {
-            if (gameState === 'PLAYING') {
-                cat.v = -9;
-                createExplosion(cat.x, cat.y + cat.h, "#00ffcc");
-            }
-            if(e.type === 'touchstart') e.preventDefault();
-        };
-
-        window.addEventListener('mousedown', flap);
-        window.addEventListener('touchstart', flap, {passive: false});
-        window.addEventListener('keydown', (e) => { if(e.code === 'Space') flap(e); });
 
         draw();
     </script>
